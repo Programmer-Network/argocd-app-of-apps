@@ -8,6 +8,8 @@ spec:
   sourceRepos:
     - "*" # Allow all repos for now; restrict in production
   destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
     - namespace: cnpg-system
       server: https://kubernetes.default.svc
     - namespace: "*" # Allow any namespace for managed clusters
