@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: cloudnativepg-project
+  namespace: argocd
+spec:
+  description: Project for CloudNativePG operator and managed Postgres clusters
+  sourceRepos:
+    - "*" # Allow all repos for now; restrict in production
+  destinations:
+    - namespace: cnpg-system
+      server: https://kubernetes.default.svc
+    - namespace: "*" # Allow any namespace for managed clusters
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
