@@ -139,9 +139,9 @@ spec:
                   name: langfuse-secrets
                   key: REDIS_PASSWORD
             # Auth Configuration
-            # Internal-only access via ClusterIP service
+            # Must match the fixed port in port-forward.sh (9004)
             - name: NEXTAUTH_URL
-              value: "http://langfuse.langfuse.svc.cluster.local:3000"
+              value: "http://localhost:9004"
             - name: NEXTAUTH_SECRET
               valueFrom:
                 secretKeyRef:
