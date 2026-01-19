@@ -7,6 +7,7 @@ spec:
   description: Shared platform services (Langfuse, ClickHouse, Monitoring)
   sourceRepos:
     - https://github.com/Programmer-Network/argocd-app-of-apps.git
+    - https://charts.bitnami.com/bitnami
   destinations:
     - namespace: langfuse
       server: https://kubernetes.default.svc
