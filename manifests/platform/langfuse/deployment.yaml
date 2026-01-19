@@ -49,6 +49,8 @@ spec:
                 secretKeyRef:
                   name: langfuse-secrets
                   key: LANGFUSE_ENCRYPTION_KEY
+            - name: HOSTNAME
+              value: "0.0.0.0"
             - name: TELEMETRY_ENABLED
               value: "false"
             - name: LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES
