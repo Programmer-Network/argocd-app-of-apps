@@ -1,0 +1,182 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langfuse
+  namespace: langfuse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: langfuse
+  template:
+    metadata:
+      labels:
+        app: langfuse
+    spec:
+      serviceAccountName: langfuse
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: langfuse
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          image: docker.io/langfuse/langfuse:3
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-db-app
+                  key: uri
+            - name: SALT
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_SALT
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_ENCRYPTION_KEY
+            - name: TELEMETRY_ENABLED
+              value: "false"
+            - name: LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES
+              value: "false"
+            - name: CLICKHOUSE_MIGRATION_URL
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: CLICKHOUSE_MIGRATION_URL
+            - name: CLICKHOUSE_URL
+              value: http://clickhouse.clickhouse.svc.cluster.local:8123
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: CLICKHOUSE_USER
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: CLICKHOUSE_PASSWORD
+            - name: CLICKHOUSE_CLUSTER_ENABLED
+              value: "false"
+            - name: LANGFUSE_USE_AZURE_BLOB
+              value: "false"
+            # S3/R2 Event Upload Configuration
+            - name: LANGFUSE_S3_EVENT_UPLOAD_BUCKET
+              value: langfuse
+            - name: LANGFUSE_S3_EVENT_UPLOAD_REGION
+              value: auto
+            - name: LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: R2_ENDPOINT
+            - name: LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: R2_ACCESS_KEY_ID
+            - name: LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: R2_SECRET_ACCESS_KEY
+            - name: LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE
+              value: "false"
+            - name: LANGFUSE_S3_EVENT_UPLOAD_PREFIX
+              value: events/
+            # S3/R2 Media Upload Configuration
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_BUCKET
+              value: langfuse
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_REGION
+              value: auto
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: R2_ENDPOINT
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: R2_ACCESS_KEY_ID
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: R2_SECRET_ACCESS_KEY
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE
+              value: "false"
+            - name: LANGFUSE_S3_MEDIA_UPLOAD_PREFIX
+              value: media/
+            - name: LANGFUSE_S3_BATCH_EXPORT_ENABLED
+              value: "false"
+            # Redis Configuration
+            - name: REDIS_TLS_ENABLED
+              value: "false"
+            - name: REDIS_HOST
+              value: redis-master.redis.svc.cluster.local
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: REDIS_PASSWORD
+            # Auth Configuration
+            # Internal-only access via ClusterIP service
+            - name: NEXTAUTH_URL
+              value: "http://langfuse.langfuse.svc.cluster.local:3000"
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: langfuse-secrets
+                  key: LANGFUSE_NEXTAUTH_SECRET
+          startupProbe:
+            httpGet:
+              path: /api/public/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/public/health
+              port: 3000
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/public/health
+              port: 3000
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"

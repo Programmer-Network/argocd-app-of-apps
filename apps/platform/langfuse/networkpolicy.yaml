@@ -1,0 +1,72 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: langfuse-network-policy
+  namespace: langfuse
+spec:
+  podSelector:
+    matchLabels:
+      app: langfuse
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from any namespace that needs Langfuse SDK access
+    # Projects call Langfuse internally via langfuse.langfuse.svc.cluster.local:3000
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # PostgreSQL (same namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: langfuse-db
+      ports:
+        - protocol: TCP
+          port: 5432
+    # ClickHouse (external namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: clickhouse
+          podSelector:
+            matchLabels:
+              app: clickhouse
+      ports:
+        - protocol: TCP
+          port: 8123
+        - protocol: TCP
+          port: 9000
+    # Redis (external namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # External HTTPS (S3/R2 for media storage, AI providers)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

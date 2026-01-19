@@ -1,19 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-app
+  name: langfuse
   namespace: argocd
 spec:
-  project: default
+  project: platform
   source:
     repoURL: https://github.com/Programmer-Network/argocd-app-of-apps.git
     targetRevision: main
-    path: apps
-    directory:
-      recurse: true
+    path: apps/platform/langfuse
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: langfuse
   syncPolicy:
     automated:
+      prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 10
