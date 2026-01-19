@@ -139,9 +139,9 @@ spec:
                   name: langfuse-secrets
                   key: REDIS_PASSWORD
             # Auth Configuration
-            # Must match the fixed port in port-forward.sh (9004)
+            # Must match the fixed port in port-forward.sh (9104)
             - name: NEXTAUTH_URL
-              value: "http://localhost:9004"
+              value: "http://localhost:9104"
             - name: NEXTAUTH_SECRET
               valueFrom:
                 secretKeyRef:
