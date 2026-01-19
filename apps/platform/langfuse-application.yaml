@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/Programmer-Network/argocd-app-of-apps.git
     targetRevision: main
-    path: apps/platform/langfuse
+    path: manifests/platform/langfuse
   destination:
     server: https://kubernetes.default.svc
     namespace: langfuse
