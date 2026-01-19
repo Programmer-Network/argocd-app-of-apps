@@ -18,6 +18,16 @@ spec:
       owner: langfuse
       secret:
         name: langfuse-db-credentials
+  managed:
+    roles:
+      - name: langfuse
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        passwordSecret:
+          name: langfuse-db-credentials
   # TODO: Enable R2 backups when ready
   # backup:
   #   barmanObjectStore:

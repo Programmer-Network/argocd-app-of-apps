@@ -37,8 +37,8 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: langfuse-db-app
-                  key: uri
+                  name: langfuse-secrets
+                  key: DATABASE_URL
             - name: SALT
               valueFrom:
                 secretKeyRef:
