@@ -47,6 +47,11 @@ spec:
             existingSecret: grafana-admin-credentials
             userKey: admin-user
             passwordKey: admin-password
+          # Server configuration for port-forward access
+          grafana.ini:
+            server:
+              root_url: http://localhost:9105
+              serve_from_sub_path: false
           persistence:
             enabled: true
             type: pvc
