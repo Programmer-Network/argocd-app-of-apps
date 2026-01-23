@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: observability
+  namespace: argocd
+spec:
+  description: Monitoring and observability stack (Prometheus, Grafana, Loki)
+  sourceRepos:
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+    - https://github.com/Programmer-Network/argocd-app-of-apps.git
+  destinations:
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    # CRDs for Prometheus Operator
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    # ClusterRoles and ClusterRoleBindings for monitoring components
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+    # Namespaces
+    - group: ""
+      kind: Namespace
+    # MutatingWebhookConfiguration and ValidatingWebhookConfiguration for Prometheus Operator
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: apps
+      kind: "*"
+    - group: batch
+      kind: "*"
+    - group: networking.k8s.io
+      kind: "*"
+    - group: rbac.authorization.k8s.io
+      kind: "*"
+    - group: policy
+      kind: "*"
+    # Prometheus Operator CRDs
+    - group: monitoring.coreos.com
+      kind: "*"
+    # Vault Secrets Operator resources
+    - group: secrets.hashicorp.com
+      kind: "*"

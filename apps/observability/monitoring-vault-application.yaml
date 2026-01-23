@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-vault
+  namespace: argocd
+  annotations:
+    # Deploy before kube-prometheus-stack so secrets are available
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: observability
+  source:
+    repoURL: https://github.com/Programmer-Network/argocd-app-of-apps.git
+    targetRevision: main
+    path: manifests/observability/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
