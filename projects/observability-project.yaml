@@ -12,6 +12,9 @@ spec:
   destinations:
     - namespace: monitoring
       server: https://kubernetes.default.svc
+    # kube-prometheus-stack deploys some components (node-exporter, kube-state-metrics) to kube-system
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     # CRDs for Prometheus Operator
     - group: apiextensions.k8s.io
