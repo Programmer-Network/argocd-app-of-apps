@@ -5,6 +5,9 @@ metadata:
   namespace: argocd
 spec:
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
   project: default
@@ -18,6 +21,19 @@ spec:
             jobEnabled: false
           persistence:
             defaultClass: true
+            defaultClassReplicaCount: 2
+          defaultSettings:
+            # Backup settings
+            backupTarget: s3://k3s-backup-repository@auto/
+            backupTargetCredentialSecret: r2-longhorn-secret
+            # Replica balancing - distributes replicas based on disk usage
+            replicaAutoBalance: best-effort
+            # Storage settings
+            storageOverProvisioningPercentage: 100
+            storageMinimalAvailablePercentage: 15
+            # Recurring job settings
+            recurringSuccessfulJobsHistoryLimit: 1
+            recurringFailedJobsHistoryLimit: 1
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system

@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn-config
+  namespace: argocd
+  annotations:
+    # Deploy after Longhorn itself is ready
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Programmer-Network/argocd-app-of-apps.git
+    targetRevision: main
+    path: manifests/cluster/longhorn
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: longhorn-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+  revisionHistoryLimit: 10

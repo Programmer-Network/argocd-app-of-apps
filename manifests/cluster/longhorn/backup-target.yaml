@@ -1,0 +1,10 @@
+# Backup target configuration for Cloudflare R2
+apiVersion: longhorn.io/v1beta2
+kind: BackupTarget
+metadata:
+  name: default
+  namespace: longhorn-system
+spec:
+  backupTargetURL: s3://k3s-backup-repository@auto/
+  credentialSecret: r2-longhorn-secret
+  pollInterval: 5m0s
