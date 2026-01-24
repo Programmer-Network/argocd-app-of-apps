@@ -6,9 +6,17 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/argoproj-labs/argocd-image-updater.git
-    targetRevision: stable
-    path: config
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argocd-image-updater
+    targetRevision: 0.11.0
+    helm:
+      values: |
+        config:
+          argocd:
+            grpcWeb: true
+            serverAddress: "argocd-server.argocd.svc.cluster.local"
+            insecure: true
+            plaintext: true
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
