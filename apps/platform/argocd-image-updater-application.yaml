@@ -21,7 +21,7 @@ spec:
             - name: GitHub Container Registry
               api_url: https://ghcr.io
               prefix: ghcr.io
-              credentials: secret:argocd/ghcr-registry-credentials#username:password
+              credentials: secret:argocd/ghcr-registry-credentials#username#password
               default: true
   destination:
     server: https://kubernetes.default.svc
