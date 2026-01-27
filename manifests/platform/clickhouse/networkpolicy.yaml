@@ -11,7 +11,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from Langfuse namespace
+    # Allow from Langfuse namespace (main app and worker)
     - from:
         - namespaceSelector:
             matchLabels:
@@ -19,6 +19,12 @@ spec:
           podSelector:
             matchLabels:
               app: langfuse
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: langfuse
+          podSelector:
+            matchLabels:
+              app: langfuse-worker
       ports:
         - protocol: TCP
           port: 8123
