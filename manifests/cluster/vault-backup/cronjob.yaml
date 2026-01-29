@@ -15,30 +15,56 @@ spec:
         spec:
           serviceAccountName: vault-backup
           restartPolicy: OnFailure
-          containers:
-            - name: vault-backup
+          volumes:
+            - name: backup-volume
+              emptyDir: {}
+          initContainers:
+            - name: vault-snapshot
               image: hashicorp/vault:1.15
               command:
                 - /bin/sh
                 - -c
                 - |
                   set -e
-
-                  # Generate timestamp for backup filename
                   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-                  BACKUP_FILE="/tmp/vault-raft-${TIMESTAMP}.snap"
-
-                  # Take Raft snapshot
+                  echo "$TIMESTAMP" > /backup/timestamp
                   echo "Taking Vault Raft snapshot..."
-                  vault operator raft snapshot save "$BACKUP_FILE"
+                  vault operator raft snapshot save "/backup/vault-raft-${TIMESTAMP}.snap"
+                  echo "Snapshot saved to /backup/vault-raft-${TIMESTAMP}.snap"
+              env:
+                - name: VAULT_ADDR
+                  value: "http://vault-active.vault.svc.cluster.local:8200"
+                - name: VAULT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-backup-token
+                      key: token
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+          containers:
+            - name: upload-to-r2
+              image: amazon/aws-cli:2.15.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(cat /backup/timestamp)
+                  BACKUP_FILE="/backup/vault-raft-${TIMESTAMP}.snap"
 
-                  # Upload to R2
                   echo "Uploading to R2..."
                   aws s3 cp "$BACKUP_FILE" "s3://database-backups/vault/vault-raft-${TIMESTAMP}.snap" \
                     --endpoint-url "$AWS_ENDPOINT_URL"
 
-                  # Cleanup old backups (keep last 10)
-                  echo "Cleaning up old backups..."
+                  echo "Cleaning up old backups (keeping last 10)..."
                   aws s3 ls "s3://database-backups/vault/" --endpoint-url "$AWS_ENDPOINT_URL" \
                     | sort -r \
                     | tail -n +11 \
@@ -47,13 +73,6 @@ spec:
 
                   echo "Backup complete: vault-raft-${TIMESTAMP}.snap"
               env:
-                - name: VAULT_ADDR
-                  value: "http://vault.vault.svc.cluster.local:8200"
-                - name: VAULT_TOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      name: vault-backup-token
-                      key: token
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
@@ -66,6 +85,9 @@ spec:
                       key: AWS_SECRET_ACCESS_KEY
                 - name: AWS_ENDPOINT_URL
                   value: "https://c12f98215fd46083c0a2afb795d825a2.r2.cloudflarestorage.com"
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
               resources:
                 requests:
                   memory: "64Mi"
