@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-raft-backup
+  namespace: vault
+spec:
+  schedule: "0 */6 * * *" # Every 6 hours
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: vault-backup
+          restartPolicy: OnFailure
+          containers:
+            - name: vault-backup
+              image: hashicorp/vault:1.15
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+
+                  # Generate timestamp for backup filename
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_FILE="/tmp/vault-raft-${TIMESTAMP}.snap"
+
+                  # Take Raft snapshot
+                  echo "Taking Vault Raft snapshot..."
+                  vault operator raft snapshot save "$BACKUP_FILE"
+
+                  # Upload to R2
+                  echo "Uploading to R2..."
+                  aws s3 cp "$BACKUP_FILE" "s3://database-backups/vault/vault-raft-${TIMESTAMP}.snap" \
+                    --endpoint-url "$AWS_ENDPOINT_URL"
+
+                  # Cleanup old backups (keep last 10)
+                  echo "Cleaning up old backups..."
+                  aws s3 ls "s3://database-backups/vault/" --endpoint-url "$AWS_ENDPOINT_URL" \
+                    | sort -r \
+                    | tail -n +11 \
+                    | awk '{print $4}' \
+                    | xargs -I {} aws s3 rm "s3://database-backups/vault/{}" --endpoint-url "$AWS_ENDPOINT_URL" || true
+
+                  echo "Backup complete: vault-raft-${TIMESTAMP}.snap"
+              env:
+                - name: VAULT_ADDR
+                  value: "http://vault.vault.svc.cluster.local:8200"
+                - name: VAULT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-backup-token
+                      key: token
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-backup-r2
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-backup-r2
+                      key: AWS_SECRET_ACCESS_KEY
+                - name: AWS_ENDPOINT_URL
+                  value: "https://c12f98215fd46083c0a2afb795d825a2.r2.cloudflarestorage.com"
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
